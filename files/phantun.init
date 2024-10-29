@@ -1,0 +1,88 @@
+#!/bin/sh /etc/rc.common
+# This is free software, licensed under the GNU General Public License v2.
+# See /LICENSE for more information.
+
+START=90
+STOP=10
+
+USE_PROCD=1
+CLIENT_PROG=/usr/sbin/phantun-client
+
+LIST_SEP="
+"
+
+UCI_STARTED=
+UCI_DISABLED=
+
+section_enabled() {
+	config_get_bool enable  "$1" 'enable'  0
+	config_get_bool enabled "$1" 'enabled' 0
+	[ $enable -gt 0 ] || [ $enabled -gt 0 ]
+}
+
+phantun_add_client_instance() {
+	local name="$1"
+    local listen="$2"
+    local remote="$3"
+    local device="$4"
+    local local="$5"
+    local peer="$6"
+
+	procd_open_instance "$name"
+	procd_set_param command "$CLIENT_PROG"	\
+        -l "$listen" \
+        -r "$remote" \
+        --tun "$device" \
+        --tun-local "$local" \
+        --tun-peer "$peer"
+	procd_close_instance
+}
+
+start_instance() {
+	local s="$1"
+
+	section_enabled "$s" || {
+		append UCI_DISABLED "$config" "$LIST_SEP"
+		return 1
+	}
+
+	local listen remote device local peer
+	config_get listen "$s" listen
+	config_get remote "$s" remote
+	config_get device "$s" device
+	config_get local "$s" local
+	config_get peer "$s" peer
+
+	[ ! -d "/var/run" ] && mkdir -p "/var/run"
+
+    phantun_add_client_instance "$s" "$listen" "$remote" "$device" "$local" "$peer"
+}
+
+start_service() {
+	local instance="$1"
+	local instance_found=0
+
+	config_cb() {
+		local type="$1"
+		local name="$2"
+		if [ "$type" = "client" ]; then
+			if [ -n "$instance" -a "$instance" = "$name" ]; then
+				instance_found=1
+			fi
+		fi
+	}
+
+	config_load 'phantun'
+
+	if [ -n "$instance" ]; then
+		[ "$instance_found" -gt 0 ] || return
+		start_instance "$instance"
+	else
+		config_foreach start_instance 'client'
+	fi
+}
+
+service_triggers() {
+	procd_add_reload_trigger phantun
+}
+

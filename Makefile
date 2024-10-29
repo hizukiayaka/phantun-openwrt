@@ -33,8 +33,19 @@ define Package/phantun/conffiles
 endef
 
 define Package/phantun/install
-	$(INSTALL_DIR) $(1)/usr/sbin
+	$(INSTALL_DIR) \
+		$(1)/usr/sbin \
+		$(1)/etc/init.d \
+		$(1)/etc/config
+
 	$(INSTALL_BIN) $$(PKG_INSTALL_DIR)/bin/client $(1)/usr/sbin/phantun-client
+
+	$(INSTALL_BIN) files/phantun.init \
+		$(1)/etc/init.d/phantun
+
+	$(INSTALL_CONF) files/phantun.config \
+		$(1)/etc/config/phantun
+
 endef
 
 Build/Compile=$(call Build/Compile/Cargo,phantun)
