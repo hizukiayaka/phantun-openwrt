@@ -14,6 +14,8 @@ LIST_SEP="
 UCI_STARTED=
 UCI_DISABLED=
 
+. /lib/functions/network.sh
+
 section_enabled() {
 	config_get_bool enable  "$1" 'enable'  0
 	config_get_bool enabled "$1" 'enabled' 0
@@ -22,20 +24,35 @@ section_enabled() {
 
 phantun_add_client_instance() {
 	local name="$1"
-    local listen="$2"
-    local remote="$3"
-    local device="$4"
-    local local="$5"
-    local peer="$6"
+	local listen="$2"
+	local remote="$3"
+	local device="$4"
+	local local="$5"
+	local peer="$6"
+	local ipv6="$7"
 
 	procd_open_instance "$name"
 	procd_set_param command "$CLIENT_PROG"	\
-        -l "$listen" \
-        -r "$remote" \
-        --tun "$device" \
-        --tun-local "$local" \
-        --tun-peer "$peer"
+	    -l $listen \
+	    -r $remote \
+	    --tun $device \
+	    --tun-local $local \
+	    --tun-peer $peer
+
+	if [ $ipv6 -eq 0 ]; then
+	    procd_append_param command "-4"
+	fi
+
 	procd_close_instance
+}
+
+add_client_nft() {
+    local s="$1"
+    local IFF="$2"
+    local OFF="$3"
+
+	chains="{ type nat hook postrouting priority srcnat; policy accept; iifname $IFF oif $OFF masquerade; }"
+    nft add chain inet fw4 $s $chains
 }
 
 start_instance() {
@@ -52,10 +69,14 @@ start_instance() {
 	config_get device "$s" device
 	config_get local "$s" local
 	config_get peer "$s" peer
+	config_get network "$s" network
+    config_get_bool ipv6 "$s" ipv6 0
 
 	[ ! -d "/var/run" ] && mkdir -p "/var/run"
 
-    phantun_add_client_instance "$s" "$listen" "$remote" "$device" "$local" "$peer"
+	phantun_add_client_instance "$s" "$listen" "$remote" "$device" "$local" "$peer" $ipv6
+	#network_get_physdev out_device $network
+	#add_client_nft $s $device $out_device
 }
 
 start_service() {
@@ -81,6 +102,20 @@ start_service() {
 		config_foreach start_instance 'client'
 	fi
 }
+
+clean_instance() {
+	local s="$1"
+
+	section_enabled "$s" || {
+		append UCI_DISABLED "$config" "$LIST_SEP"
+		return 1
+	}
+    nft delete chain inet fw4 $s
+}
+
+#service_stopped() {
+	#config_foreach clean_instance 'client'
+#}
 
 service_triggers() {
 	procd_add_reload_trigger phantun
