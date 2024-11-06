@@ -6,8 +6,8 @@ PKG_RELEASE:=1
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/phantun-$(PKG_VERSION)
 PKG_SOURCE_PROTO:=git
-PKG_SOURCE_URL:=https://github.com/dndx/phantun.git
-PKG_SOURCE_VERSION:=60f24d25633b078c3df436db371f44fa787817c2
+PKG_SOURCE_URL:=https://github.com/hizukiayaka/phantun.git
+PKG_SOURCE_VERSION:=c0d04e972197616ba18567776452ff50b96d3f3d
 
 PKG_BUILD_DEPENDS:=rust/host
 PKG_BUILD_PARALLEL:=1
@@ -34,16 +34,15 @@ define Package/phantun-common/conffiles
 endef
 
 define Package/phantun-common/install
-    $(INSTALL_DIR) \
-        $(1)/etc/init.d \
-        $(1)/etc/config
+	$(INSTALL_DIR) \
+	    $(1)/etc/init.d \
+	    $(1)/etc/config
 
-    $(INSTALL_BIN) files/phantun.init \
-        $(1)/etc/init.d/phantun
+	$(INSTALL_BIN) files/phantun.init \
+	    $(1)/etc/init.d/phantun
 
-    $(INSTALL_CONF) files/phantun.config \
-        $(1)/etc/config/phantun
-
+	$(INSTALL_CONF) files/phantun.config \
+	    $(1)/etc/config/phantun
 endef
 
 define Package/phantun-client
@@ -60,10 +59,10 @@ define Package/phantun-client/description
 endef
 
 define Package/phantun-client/install
-    $(INSTALL_DIR) \
-        $(1)/usr/sbin
+	$(INSTALL_DIR) \
+		$(1)/usr/sbin
 
-    $(INSTALL_BIN) $$(PKG_INSTALL_DIR)/bin/client $(1)/usr/sbin/phantun-client
+	$(INSTALL_BIN) $$(PKG_INSTALL_DIR)/bin/client $(1)/usr/sbin/phantun-client
 endef
 
 define Package/phantun-server
@@ -80,15 +79,16 @@ define Package/phantun-server/description
 endef
 
 define Package/phantun-server/install
-    $(INSTALL_DIR) \
-        $(1)/usr/sbin
+	$(INSTALL_DIR) \
+		$(1)/usr/sbin
 
-    $(INSTALL_BIN) $$(PKG_INSTALL_DIR)/bin/server $(1)/usr/sbin/phantun-server
+	$(INSTALL_BIN) $$(PKG_INSTALL_DIR)/bin/server $(1)/usr/sbin/phantun-server
 endef
 
-Build/Compile=$(call Build/Compile/Cargo,phantun)
+define Build/Compile
+    $(call Build/Compile/Cargo,phantun)
+endef
 
-$(eval $(call RustBinPackage,phantun))
 $(eval $(call BuildPackage,phantun-common))
 $(eval $(call BuildPackage,phantun-client))
 $(eval $(call BuildPackage,phantun-server))
