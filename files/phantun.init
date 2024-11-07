@@ -101,10 +101,10 @@ start_instance() {
 
 	section_enabled "$s" || return 1
 
-	local type
-	config_get type "$s" type
+	local cfgtype
+	config_get cfgtype "$section" TYPE
 
-	case "$type" in
+	case "$cfgtype" in
 	    client)
 		start_client_instance "$s"
 		;;
@@ -121,10 +121,8 @@ start_service() {
 	config_cb() {
 		local type="$1"
 		local name="$2"
-		if [ "$type" = "client" ]; then
-			if [ -n "$instance" -a "$instance" = "$name" ]; then
-				instance_found=1
-			fi
+		if [ -n "$instance" -a "$instance" = "$name" ]; then
+			instance_found=1
 		fi
 	}
 
