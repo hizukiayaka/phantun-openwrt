@@ -102,7 +102,7 @@ start_instance() {
 	section_enabled "$s" || return 1
 
 	local cfgtype
-	config_get cfgtype "$section" TYPE
+	config_get cfgtype "$s" TYPE
 
 	case "$cfgtype" in
 	    client)
